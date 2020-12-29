@@ -130,6 +130,7 @@ def iridc_ab(a,b,alpha, N, p, K, f):
             eta0[0, :M] = eta0[0, 1:M+1]
             eta0[:, 0, M] = eta_pred
             for lm in range(1, M):
+                # TODO : stencil is different? Check Compare1.py?
                 eta0[lm, :M] = eta0[lm, 1:M+1]
                 eta0[lm, M] = eta1[lm-1]
             # put the most corrected point in the final answer
