@@ -16,7 +16,7 @@ def corrector(y1, y0, t, h, f):
     e2 = f(t[1], y1[1]) - f(t[1], y0[1])
     e3 = f(t[2], y1[2]) - f(t[2], y0[2])
     e4 = f(t[3], y1[3]) - f(t[3], y0[3])
-    return y_[3] + h/24 * (55*e4 - 59*e3 + 37*e2 - 9*e1)
+    return y1[3] + h/24 * (55*e4 - 59*e3 + 37*e2 - 9*e1)
     
 
 def predictor(y,t, h, f):
@@ -55,7 +55,7 @@ def iridc_ab(a,b,alpha, N, p, K, f):
                                 [(t-k)/(i-k) for k in range(M) if k!=i])
             S[m,i] = quadrature(c, m, m+1, args=(i))[0] 
 
-    Svec = S[M-1, :]
+    # ! Svec = S[M-1, :]
     # storing the final answer in yy
     eta_sol = np.zeros([N+1])
     # the time vector
@@ -75,24 +75,24 @@ def iridc_ab(a,b,alpha, N, p, K, f):
         # predictor loop using forward Euler method
         for m in range(3):
             t[m+1] = (j*K+m+1) * h
-            eta_begin[0, m+1] = euler_predictor(eta_begin[0, m], t[j*K+m], h, ff)
+            eta_begin[0, m+1] = euler_predictor(eta_begin[0, m], t[j*K+m], h, f)
         for m in range(2*M-1):
             t[m+1] = (j*K+m+1) * h
-            eta_begin[0, m+1] = predictor(eta_begin[0,m-3:m+1], t[j*K+m-3:j*K+m+1], h, ff)
+            eta_begin[0, m+1] = predictor(eta_begin[0,m-3:m+1], t[j*K+m-3:j*K+m+1], h, f)
 
         # corrector loops using Lagrange polynomials
         for l in range(1, M+1):
             eta_begin[l,:] = np.zeros([2*M])
             eta_begin[l, 0] = eta_sol[j*K]
             for m in range(3):
-                eta_begin[l,m+1] = euler_corrector(eta_begin[l,m], eta_begin[l-1,m], t[j*K+m], h, ff)\
-                    + h*sum([S[m, i]*ff(t[j*K+i], eta_begin[l-1, i]) for i in range(M+1)])
-            for m in range(3:M):
-                eta_begin[l, m+1] = corrector(eta_begin[l,m-3:m+1], eta_begin[l-1,m-3:m+1], t[j*K+m-3:j*K+m+1], h, ff)\
-                    + h*sum([S[m, i]*ff(t[j*K+i], Ybegin[l-1, i]) for i in range(M+1)])
+                eta_begin[l,m+1] = euler_corrector(eta_begin[l,m], eta_begin[l-1,m], t[j*K+m], h, f)\
+                    + h*sum([S[m, i]*f(t[j*K+i], eta_begin[l-1, i]) for i in range(M+1)])
+            for m in range(3,M):
+                eta_begin[l, m+1] = corrector(eta_begin[l,m-3:m+1], eta_begin[l-1,m-3:m+1], t[j*K+m-3:j*K+m+1], h, f)\
+                    + h*sum([S[m, i]*f(t[j*K+i], eta_begin[l-1, i]) for i in range(M+1)])
             for m in range(M, 2*M-l):
-                eta_begin[l, m+1] = corrector(eta_begin[l,m-3:m+1], eta_begin[l-1,m-3:m+1], t[j*K+m-3:j*K+m+1], h, ff)\
-                    + h*sum([S[M-1, i]*ff(t[j*K+m-M+i+1], eta_begin[l-1, m-M+i+1]) for i in range(M+1)])
+                eta_begin[l, m+1] = corrector(eta_begin[l,m-3:m+1], eta_begin[l-1,m-3:m+1], t[j*K+m-3:j*K+m+1], h, f)\
+                    + h*sum([S[M-1, i]*f(t[j*K+m-M+i+1], eta_begin[l-1, m-M+i+1]) for i in range(M+1)])
 
         eta_pred = eta_begin[0, -4:]
         eta_sol[j*K:j*K+M] = eta_begin[M, :M]
@@ -121,7 +121,7 @@ def iridc_ab(a,b,alpha, N, p, K, f):
             # correctors
             for l in range(1, M+1):
                 lm = l - 1
-                # ! dimention of stencil is M (used for the regression) but
+                # ! dimension of stencil is M (used for the regression) but
                 # ! the euler correction only uses value -2 in Hosseins code 
                 Tvec = t_ext[j*K+m-l+1:j*K+m-l+1+M+1]
                 eta1[lm] = corrector(eta1[lm], eta0[lm, :], Tvec)
@@ -140,13 +140,13 @@ def iridc_ab(a,b,alpha, N, p, K, f):
     return t, eta_sol
 
 T = 10.0
-y0 = np.array([1.0, 0])
 p = 4  # RIDC(6,40)
-M = p-1
 K = 200
 N = 1000
+a = 0
+
 start = time.perf_counter()
-tt, yy = RIDCsolver(func, T, y0, N, M, K)
+tt, yy = iridc_ab(a=a, b=T, alpha=y0, N=N, p=p, K=K, f=dy_dt)
 finish = time.perf_counter()
 print(f'Finished in {round(finish-start, 2)} second(s)')
 print(tt[-1:])
