@@ -3,9 +3,10 @@ Testing the initial part of HOSSEINsolver with an IDC solver
 '''
 
 import numpy as np
-from scipy.interpolate import lagrange
-import matplotlib.pyplot as plt
+fimport matplotlib.pyplot as plt
 import time
+from scipy.integrate import quadrature
+from functools import reduce
 
 
 def func0(t, y):
@@ -77,18 +78,11 @@ def solver(func, T, y0, N, M, approach):
     Mm = M - 1
     # Forming the quadraure matrix S[m,i]
     S = np.zeros([Mm, Mm+1])
-    for m in range(Mm):  # Calculate qudrature weights
+    for m in range(Mm):
         for i in range(Mm+1):
-            x = np.arange(Mm+1)  # Construct a polynomial
-            y = np.zeros(Mm+1)   # which equals to 1 at i, 0 at other points
-            y[i] = 1
-            p = lagrange(x, y)
-            para = np.array(p)    # Compute its integral
-            P = np.zeros(Mm+2)
-            for k in range(Mm+1):
-                P[k] = para[k]/(Mm+1-k)
-            P = np.poly1d(P)
-            S[m, i] = P(m+1) - P(m)
+            def c(t, i): return reduce(lambda x, y: x*y,
+                                       [(t-k)/(i-k) for k in range(M) if k != i])
+            S[m, i] = quadrature(c, m, m+1, args=(i))[0]
     Svec = S[Mm-1]
     # the final answer will be stored in yy
     yy = np.zeros([N+1, d])
@@ -237,15 +231,15 @@ for i, NN in enumerate(rangeN):
 
     x,y =abs((y_t0-y_p0)/y_t0)
     err00.append(np.mean(x))
-    err01.append(np.mean(y))
+    err01.append(y[-1])#np.mean(y))
 
     x,y = abs((y_t1-y_p1)/y_t1)
     err10.append(np.mean(x))
-    err11.append(np.mean(y))
+    err11.append(y[-1])#np.mean(y))
 
     x,y = abs((y_t2-y_p2)/y_t2)
     err20.append(np.mean(x))
-    err21.append(np.mean(y))
+    err21.append(y[-1])#np.mean(y))
 
 
 print(err00)
