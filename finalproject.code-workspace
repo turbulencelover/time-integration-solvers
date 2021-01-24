@@ -6,5 +6,8 @@
 		{
 			"path": "../prep"
 		}
-	]
+	],
+	"settings": {
+		"python.pythonPath": "/home/rhea/anaconda3/envs/py36/bin/python"
+	}
 }
