@@ -6,65 +6,80 @@ from scipy.interpolate import lagrange
 import matplotlib.pyplot as plt
 from functools import reduce
 from scipy.integrate import quadrature
+import numpy as np
+from functools import wraps
+from time import time
 
 
 class DCs:
 
-    def idc_fe(self, a,b,alpha, N, p, f):
+    def timing(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            start = time()
+            result = f(*args, **kwargs)
+            end = time()
+            return result, end-start
+        return wrapper
+
+    @timing
+    def idc_fe(self, a, b, alpha, N, p, f):
         """Perform IDCp-FE
         Input: (a,b) endpoints; alpha ics; N #intervals; p order; f vector field.
         Require: N divisible by M=p-1, with JM=N. M is #corrections.
         Return: eta_sol
         """
 
-        # Initialise, J intervals of size M 
+        # Initialise, J intervals of size M
         if not type(N) is int:
             raise TypeError('N must be integer')
         M = p-1
-        if N % M !=0:
+        if N % M != 0:
             raise Exception('p-1 does not divide N')
         dt = (b-a)/N
         J = int(N/M)
-        S = np.zeros([M,M+1])
+        S = np.zeros([M, M+1])
 
-        # M corrections, M intervals I, of size J 
+        # M corrections, M intervals I, of size J
         eta_sol = np.zeros(N+1)
-        eta_sol[0]=alpha
+        eta_sol[0] = alpha
         eta = np.zeros([M+1, J, M+1])
-        t = np.zeros([J,M+1])
+        t = np.zeros([J, M+1])
         eta_overlaps = np.zeros([J])
 
         # Precompute integration matrix
         for m in range(M):
             for i in range(M+1):
-                c = lambda t,i : reduce(lambda x, y: x*y, 
-                                    [(t-k)/(i-k) for k in range(M) if k!=i])
-                S[m,i] = quadrature(c, m, m+1, args=(i))[0] 
+                def c(t, i): return reduce(lambda x, y: x*y,
+                                           [(t-k)/(i-k) for k in range(M) if k != i])
+                S[m, i] = quadrature(c, m, m+1, args=(i))[0]
 
         for j in range(J):
             # Prediction Loop
             eta[0, j, 0] = alpha if j == 0 else eta_overlaps[j]
             for m in range(M):
-                t[j,m] = (j*M+m)*dt
-                eta[0,j,m+1] = eta[0,j,m] + dt*f(t[j,m],eta[0,j,m])
-
+                t[j, m] = (j*M+m)*dt
+                eta[0, j, m+1] = eta[0, j, m] + dt*f(t[j, m], eta[0, j, m])
 
             # Correction Loops
-            for l in range(1,M+1):
-                eta[l,j,0] = eta[l-1,j,0]
+            for l in range(1, M+1):
+                eta[l, j, 0] = eta[l-1, j, 0]
                 for m in range(M):
                     # Error equation, Forward Euler
-                    term1 = dt*(f(t[j,m],eta[l,j,m])-f(t[j,m],eta[l-1,j,m]))
-                    term2 = dt*np.sum([ S[m,i] * f(t[j,i],eta[l-1,j,i]) for i in range(M)])
-                    eta[l,j,m+1] = eta[l,j,m] + term1 + term2
-            
+                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
+                                f(t[j, m], eta[l-1, j, m]))
+                    term2 = dt * \
+                        np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
+                                for i in range(M)])
+                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
 
-            eta_sol[j*M+1:(j+1)*M +1] = eta[M,j,1:]
+            eta_sol[j*M+1:(j+1)*M + 1] = eta[M, j, 1:]
             if j != J-1:
-                eta_overlaps[j+1] = eta[M,j,M] 
+                eta_overlaps[j+1] = eta[M, j, M]
 
-        return np.arange(a,b+dt,dt)[:-1], eta_sol[:-1]
+        return np.arange(a, b+dt, dt)[:-1], eta_sol[:-1]
 
+    @timing
     def ridc_fe(self, a, b, alpha, N, p, K, f):
         """Perform IDCp-FE
         Input: (a,b) endpoints; alpha ics; N #intervals; p order; K intervals; f vector field.
@@ -94,7 +109,7 @@ class DCs:
         for m in range(M):
             for i in range(M+1):
                 def c(t, i): return reduce(lambda x, y: x*y,
-                                        [(t-k)/(i-k) for k in range(M) if k != i])
+                                           [(t-k)/(i-k) for k in range(M) if k != i])
                 S[m, i] = quadrature(c, m, m+1, args=(i))[0]
 
         for j in range(J):
@@ -112,7 +127,7 @@ class DCs:
                     term1 = dt*(f(t[j, m], eta[l, j, m]) -
                                 f(t[j, m], eta[l-1, j, m]))
                     term2 = dt*np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
-                                    for i in range(M)])
+                                       for i in range(M)])
                     eta[l, j, m+1] = eta[l, j, m] + term1 + term2
                 for m in range(M, K):
                     term1 = dt*(f(t[j, m], eta[l, j, m]) -
@@ -128,6 +143,7 @@ class DCs:
 
         return eta_sol
 
+    @timing
     def ridc_rk4(self, a, b, alpha, N, p, K, f):
         """Perform RIDC(p,K)-RK(4)
         Input: (a,b) endpoints; alpha ics; N #intervals; p order; K intervals; f vector field.
@@ -157,7 +173,7 @@ class DCs:
         for m in range(M):
             for i in range(M+1):
                 def c(t, i): return reduce(lambda x, y: x*y,
-                                        [(t-k)/(i-k) for k in range(M) if k != i])
+                                           [(t-k)/(i-k) for k in range(M) if k != i])
                 S[m, i] = quadrature(c, m, m+1, args=(i))[0]
 
         for j in range(J):
@@ -179,7 +195,7 @@ class DCs:
                     term1 = dt*(f(t[j, m], eta[l, j, m]) -
                                 f(t[j, m], eta[l-1, j, m]))
                     term2 = dt*np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
-                                    for i in range(M)])
+                                       for i in range(M)])
                     eta[l, j, m+1] = eta[l, j, m] + term1 + term2
                 for m in range(M, K):
                     term1 = dt*(f(t[j, m], eta[l, j, m]) -
@@ -195,6 +211,7 @@ class DCs:
 
         return eta_sol
 
+    @timing
     def ridc_ab2(self, a, b, alpha, N, p, K, f):
         """Perform RIDC(p,K)-AB2
         Input: (a,b) endpoints; alpha ics; N #intervals; p order; K intervals; f vector field.
@@ -259,8 +276,9 @@ class DCs:
             if j != J-1:
                 eta_overlaps[j+1] = eta[M, j, K]
 
-        return np.arange(a, b+dt, dt), eta_sol
+        return eta_sol
 
+    @timing
     def ridc_abM(self, T, y0, N, M, approach, f):
         '''
         Inputs:
@@ -349,7 +367,7 @@ class DCs:
             input:
             M: the order of Adam-Bashforth scheme
             '''
-            
+
             if M == 2:
                 return np.array([-1./2, 3./2])
             elif M == 3:
@@ -417,6 +435,7 @@ class DCs:
 
         return t, yy
 
+    @timing
     def ridc_rk4_ab4(self, func, T, y0, N, M):
         '''
         Inputs:
@@ -440,19 +459,17 @@ class DCs:
             e3 = f(t[2], y1[2]) - f(t[2], y0[2])
             e4 = f(t[3], y1[3]) - f(t[3], y0[3])
             return y1[3] + h/24 * (55*e4 - 59*e3 + 37*e2 - 9*e1)
-            
 
-        def predictor(y,t, h, f):
+        def predictor(y, t, h, f):
             k1 = f(t[0], y[0])
             k2 = f(t[1], y[1])
-            k3 = f(t[2], y[2]) 
-            k4 = f(t[3], y[3]) # most recent
+            k3 = f(t[2], y[2])
+            k4 = f(t[3], y[3])  # most recent
             return y[3] + h/24 * (55*k4 - 59*k3 + 37*k2 - 9*k1)
 
-        euler_predictor = lambda y,t,h,f : y+h*f(t,y)
-        euler_corrector = lambda y1,y0,t,h,f : y1 + h*(f(t,y1)-f(t,y0))
+        def euler_predictor(y, t, h, f): return y+h*f(t, y)
+        def euler_corrector(y1, y0, t, h, f): return y1 + h*(f(t, y1)-f(t, y0))
 
-        
         # number of equations in ODE (aka degree of freedom, dimension of space)
         # for now set to 1 (will be modified LATER to handle more than one dime)
         d = len(y0)
@@ -467,7 +484,7 @@ class DCs:
         for m in range(Mm):
             for i in range(Mm+1):
                 def c(t, i): return reduce(lambda x, y: x*y,
-                                        [(t-k)/(i-k) for k in range(M) if k != i])
+                                           [(t-k)/(i-k) for k in range(M) if k != i])
                 S[m, i] = quadrature(c, m, m+1, args=(i))[0]
         Svec = S[Mm-1]
         # the final answer will be stored in yy
@@ -525,7 +542,7 @@ class DCs:
             input:
             M: the order of Adam-Bashforth scheme
             '''
-            
+
             if M == 2:
                 return np.array([-1./2, 3./2])
             elif M == 3:
@@ -578,10 +595,7 @@ class DCs:
             F2 = func(t_ext[iTime+1-(M-1)], Y2[M-1])
             # ** updating predictor stencil
             F1[0, 0:M-1] = F1[0, 1:M]
-           
 
             F1[0, M-1] = func(t_ext[iTime+1], Y2[0])
 
         return t, yy
-
-

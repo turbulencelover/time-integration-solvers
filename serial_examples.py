@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 class Schemes: 
     soln = []
@@ -13,11 +14,13 @@ class Schemes:
           
     def prep_preds(scheme):
         def wrapper(self):
+            start = time()
             n = self.times.size
             x = np.zeros(n)
             x[0] = self.ics
             self.soln = scheme(self,x)
-            return self.times, self.soln
+            end = time()
+            return self.times, self.soln, round(end-start, 2)
         return wrapper
  
     @prep_preds

@@ -1,7 +1,9 @@
 import numpy as np
 
 def func0(t, y):
-    return 4*t*(y)**(0.5)
+    if isinstance(y, list):
+        y = y[0]
+    return 4*t*y**(0.5)
 
 def y_exact0(t):
     return (1 + t**2)**2
