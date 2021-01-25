@@ -77,7 +77,7 @@ class DCs:
             if j != J-1:
                 eta_overlaps[j+1] = eta[M, j, M]
 
-        return np.arange(a, b+dt, dt)[:-1], eta_sol[:-1]
+        return eta_sol[:-1]
 
     @timing
     def ridc_fe(self, a, b, alpha, N, p, K, f):

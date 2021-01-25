@@ -7,17 +7,16 @@ from time import time
 from functools import wraps
 
 
-def test():
+def test1():
     N = 320
     start, stop = 0, 1
-    init_cond = 0
     h = (stop-start)/N
     ts = np.arange(start, stop, h)
 
     dy_dt = ex.func0
     y = ex.y_exact0
     y0 = 1
-    yN = y(stop)
+    #yN = y(stop)
 
     serial = scheme(v_field=dy_dt,
                     start=start,
@@ -25,18 +24,18 @@ def test():
                     h=h,
                     init_conditions=y0)
 
-    ts0, fe, fe_time = serial.euler()
+    _, fe, fe_time = serial.euler()
     _, rk4, rk4_time = serial.rk4()
     _, ab4, ab4_time = serial.ab4()
 
     true = np.array([y(t) for t in ts])
     fe_err = np.mean(np.abs(true-fe))
     rk4_err = np.mean(np.abs(true -rk4))
-    ab4_err = np.mean(np.abs(true -rk4))
+    ab4_err = np.mean(np.abs(true -ab4))
 
-    (ts1, idc_fe2), time_idc_fe2 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 3, f=dy_dt)
-    (ts1, idc_fe3), time_idc_fe3 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 5, f=dy_dt)
-    (ts2, idc_fe6), time_idc_fe6 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 6, f=dy_dt)
+    idc_fe2, time_idc_fe2 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 3, f=dy_dt)
+    idc_fe3, time_idc_fe3 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 5, f=dy_dt)
+    idc_fe6, time_idc_fe6 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 6, f=dy_dt)
     idc_fe2_err = np.mean(np.abs(true-idc_fe2))
     idc_fe3_err = np.mean(np.abs(true-idc_fe3))
     idc_fe6_err = np.mean(np.abs(true-idc_fe6))
@@ -101,9 +100,9 @@ def test():
     print(df_.to_latex())
 
 
-def order():
+def test2():
     NotImplemented
 
 
 if __name__ == '__main__':
-    test()
+    test1()
