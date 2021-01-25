@@ -7,23 +7,7 @@ from time import time
 from functools import wraps
 
 
-def test(T, y0, M, N, approach, ff, y_t, solver):
-    start = time()
-    tt, yy = solver(ff, T, y0, N, M, approach)
-    finish = time()
-    print(f'Finished in {round(finish-start, 2)} second(s)')
-
-    ts = np.linspace(0, T, N+1)
-    y_true = y_t(ts)
-    return tt, yy.T, y_true, round(finish-start, 2)
-
-
-def order():
-    NotImplemented
-
-
-if __name__ == '__main__':
-
+def test():
     N = 320
     start, stop = 0, 1
     init_cond = 0
@@ -50,8 +34,10 @@ if __name__ == '__main__':
     rk4_err = np.mean(np.abs(true -rk4))
     ab4_err = np.mean(np.abs(true -rk4))
 
-    (ts1, idc_fe3), time_idc_fe3 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 3, f=dy_dt)
+    (ts1, idc_fe2), time_idc_fe2 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 3, f=dy_dt)
+    (ts1, idc_fe3), time_idc_fe3 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 5, f=dy_dt)
     (ts2, idc_fe6), time_idc_fe6 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 6, f=dy_dt)
+    idc_fe2_err = np.mean(np.abs(true-idc_fe2))
     idc_fe3_err = np.mean(np.abs(true-idc_fe3))
     idc_fe6_err = np.mean(np.abs(true-idc_fe6))
 
@@ -80,27 +66,27 @@ if __name__ == '__main__':
     ridc_abM_err = np.mean(np.abs(true-ridc_abM[1:]))
 
     ind = ['FE', 'RK4', 'AB4', 
-            'IDC3-FE', 'IDC6-FE', 
+            'IDC3-FE', 'IDC5-FE','IDC6-FE', 
             'RIDC(4,N)-FE', 'RIDC(4,N/2)-FE', 'RIDC(4,N/4)-FE', 
             'RIDC(4,N)-RK4', 'RIDC(4,N/2)-RK4', 'RIDC(4,N/4)-RK4',
             'RIDC(4,N)-AB2', 'RIDC(4,N/2)-AB2', 'RIDC(4,N/4)-AB2', 'RIDC4_N0_STENCIL']
     
 
     times = [fe_time, rk4_time, ab4_time, 
-                time_idc_fe3, time_idc_fe6,
+                time_idc_fe2, time_idc_fe3, time_idc_fe6,
                 time_ridc_fe3, time_ridc_fe4, time_ridc_fe5, 
                 time_ridc_rk6, time_ridc_rk7, time_ridc_rk8, 
                 time_ridc_ab9, time_ridc_rk10, time_ridc_rk11, time_ridc_abM]
 
     errors = [fe_err, rk4_err, ab4_err,
-                idc_fe3_err, idc_fe6_err, 
+                idc_fe2_err, idc_fe3_err, idc_fe6_err, 
                 ridc_fe3_err, ridc_fe4_err, ridc_fe5_err, 
                 ridc_rk6_err, ridc_rk7_err, ridc_rk8_err, 
                 ridc_ab9_err, ridc_ab10_err, ridc_ab11_err, ridc_abM_err]
 
     n = [N]*len(times) 
-    k = [np.nan,np.nan,np.nan,
-            np.nan,np.nan,
+    k = [np.nan,np.nan,np.nan, 
+            np.nan,np.nan, np.nan,
             320, 160, 80, 
             320, 160, 80,
             320, 160, 80, np.nan ]
@@ -113,3 +99,11 @@ if __name__ == '__main__':
     # print the data 
     print(df_)
     print(df_.to_latex())
+
+
+def order():
+    NotImplemented
+
+
+if __name__ == '__main__':
+    test()
