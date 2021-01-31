@@ -9,6 +9,7 @@ from scipy.integrate import quadrature
 import numpy as np
 from functools import wraps
 from time import time
+import test_examples as ex
 
 
 class DCs:
@@ -97,50 +98,51 @@ class DCs:
         dt = (b-a)/N
         J = int(N/K)
         S = np.zeros([M, M+1])
+        d = 1 if isinstance(alpha, int) else len(alpha)
 
         # M corrections, M intervals I, of size J
-        eta_sol = np.zeros(N+1)
+        eta_sol = np.zeros([N+1,d])
         eta_sol[0] = alpha
-        eta = np.zeros([M+1, J, K+1])
+        eta0 = np.zeros([J, K+1, d])
+        eta1 = np.zeros([J, K+1, d])
         t = np.zeros([J, K+1])
-        eta_overlaps = np.zeros([J])
+
+        times = np.linspace(a,b,N+1)
+        for j in range(J):
+            t[j] = times[j*K:(j+1)*K+1]
 
         # Precompute integration matrix
-        for m in range(M):
+        for m in range(M):  
             for i in range(M+1):
-                def c(t, i): return reduce(lambda x, y: x*y,
-                                           [(t-k)/(i-k) for k in range(M) if k != i])
-                S[m, i] = quadrature(c, m, m+1, args=(i))[0]
+                x = np.arange(M+1)
+                y = np.zeros(M+1) 
+                y[i] = 1
+                p = lagrange(x, y)
+                para = np.poly1d.integ(p)  
+                S[m,i] = para(m+1) - para(m)
+
 
         for j in range(J):
-            # Prediction Loop
-            eta[0, j, 0] = alpha if j == 0 else eta_overlaps[j]
-            for m in range(K):
-                t[j, m] = (j*K+m)*dt
-                eta[0, j, m+1] = eta[0, j, m] + dt*f(t[j, m], eta[0, j, m])
-
-            # Correction Loops
-            for l in range(1, M+1):
-                eta[l, j, 0] = eta[l-1, j, 0]
-                for m in range(M):
-                    # Error equation, Forward Euler
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt*np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
-                                       for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-                for m in range(M, K):
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt * \
-                        np.sum([S[M-1, i] * f(t[j, m-M+i], eta[l-1, j, m-M+i])
-                                for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-
-            eta_sol[j*K+1:(j+1)*K + 1] = eta[M, j, 1:]
-            if j != J-1:
-                eta_overlaps[j+1] = eta[M, j, K]
-
+            eta0[:, 0] = eta_sol[j*K]  # predictor starts w last point in j-1 interval
+            for m in range(K):   #prediction
+                eta0[j,m+1] = eta0[j,m] + dt*f(t[j,m],eta0[j,m]) #Eulers forward method  
+                
+            for l in range(1,M+1):   #correction
+                eta1[j,0] = eta0[j,0]
+                
+                for m in range(M):  
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[m,k]*f(t[j,k],eta0[j,k]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] + term1 + term2 #solve error equation with forward Euler
+                
+                for m in range(M,K):
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[M-1,k]*f(t[j,m-M+k+1],eta0[j,m-M+k+1]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] + term1 + term2  #solve error equation with forward Euler
+                        
+                eta0[j] = eta1[j]
+        
+            eta_sol[j*K+1:j*K+K+1] = eta1[j,1:]
         return eta_sol
 
     @timing
@@ -152,7 +154,7 @@ class DCs:
         Return: eta_sol
         """
 
-        # Initialise, J intervals of size M
+       # Initialise, J intervals of size M
         if not isinstance(N, int):
             raise TypeError('N must be integer')
         M = p-1
@@ -161,54 +163,55 @@ class DCs:
         dt = (b-a)/N
         J = int(N/K)
         S = np.zeros([M, M+1])
+        d = 1 if isinstance(alpha, int) else len(alpha)
 
         # M corrections, M intervals I, of size J
-        eta_sol = np.zeros(N+1)
+        eta_sol = np.zeros([N+1,d])
         eta_sol[0] = alpha
-        eta = np.zeros([M+1, J, K+1])
+        eta0 = np.zeros([J, K+1, d])
+        eta1 = np.zeros([J, K+1, d])
         t = np.zeros([J, K+1])
-        eta_overlaps = np.zeros([J])
+
+        times = np.linspace(a,b,N+1)
+        for j in range(J):
+            t[j] = times[j*K:(j+1)*K+1]
 
         # Precompute integration matrix
-        for m in range(M):
+        for m in range(M):  
             for i in range(M+1):
-                def c(t, i): return reduce(lambda x, y: x*y,
-                                           [(t-k)/(i-k) for k in range(M) if k != i])
-                S[m, i] = quadrature(c, m, m+1, args=(i))[0]
+                x = np.arange(M+1)
+                y = np.zeros(M+1) 
+                y[i] = 1
+                p = lagrange(x, y)
+                para = np.poly1d.integ(p)  
+                S[m,i] = para(m+1) - para(m)
+
 
         for j in range(J):
-            # Prediction Loop
-            eta[0, j, 0] = alpha if j == 0 else eta_overlaps[j]
-            for m in range(K):
-                t[j, m] = (j*K+m)*dt
-                k1 = f(t[j, m], eta[0, j, m])
-                k2 = f(t[j, m]+dt/2, eta[0, j, m] + k1/2)
-                k3 = f(t[j, m]+dt/2, eta[0, j, m]+k2/2)
-                k4 = f(t[j, m]+dt, eta[0, j, m]+k3)
-                eta[0, j, m+1] = eta[0, j, m] + dt*(k1/6 + k2/3 + k3/3 + k4/6)
-
-            # Correction Loops
-            for l in range(1, M+1):
-                eta[l, j, 0] = eta[l-1, j, 0]
-                for m in range(M):
-                    # Error equation, Forward Euler
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt*np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
-                                       for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-                for m in range(M, K):
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt * \
-                        np.sum([S[M-1, i] * f(t[j, m-M+i], eta[l-1, j, m-M+i])
-                                for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-
-            eta_sol[j*K+1:(j+1)*K + 1] = eta[M, j, 1:]
-            if j != J-1:
-                eta_overlaps[j+1] = eta[M, j, K]
-
+            eta0[:, 0] = eta_sol[j*K]  # predictor starts w last point in j-1 interval
+            for m in range(K):   #prediction
+                k1 = f(t[j, m], eta0[j, m])
+                k2 = f(t[j, m]+dt/2, eta0[j, m] + k1/2)
+                k3 = f(t[j, m]+dt/2, eta0[j, m]+k2/2)
+                k4 = f(t[j, m]+dt, eta0[j, m]+k3)
+                eta0[j,m+1] = eta0[j,m] + dt*(k1/6 + k2/3 + k3/3 + k4/6) # RK4
+                
+            for l in range(1,M+1):   #correction
+                eta1[j,0] = eta0[j,0]
+                
+                for m in range(M):  
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[m,k]*f(t[j,k],eta0[j,k]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] + term1 + term2 #solve error equation with forward Euler
+                
+                for m in range(M,K):
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[M-1,k]*f(t[j,m-M+k+1],eta0[j,m-M+k+1]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] +  term1 + term2 #solve error equation with forward Euler
+                        
+                eta0[j] = eta1[j]
+        
+            eta_sol[j*K+1:j*K+K+1] = eta1[j,1:]
         return eta_sol
 
     @timing
@@ -228,53 +231,52 @@ class DCs:
         dt = (b-a)/N
         J = int(N/K)
         S = np.zeros([M, M+1])
+        d = 1 if isinstance(alpha, int) else len(alpha)
 
         # M corrections, M intervals I, of size J
-        eta_sol = np.zeros(N+1)
+        eta_sol = np.zeros([N+1,d])
         eta_sol[0] = alpha
-        eta = np.zeros([M+1, J, K+1])
+        eta0 = np.zeros([J, K+1, d])
+        eta1 = np.zeros([J, K+1, d])
         t = np.zeros([J, K+1])
-        eta_overlaps = np.zeros([J])
+
+        times = np.linspace(a,b,N+1)
+        for j in range(J):
+            t[j] = times[j*K:(j+1)*K+1]
 
         # Precompute integration matrix
-        for m in range(M):
+        for m in range(M):  
             for i in range(M+1):
-                def c(t, i): return reduce(lambda x, y: x*y,
-                                           [(t-k)/(i-k) for k in range(M) if k != i])
-                S[m, i] = quadrature(c, m, m+1, args=(i))[0]
+                x = np.arange(M+1)
+                y = np.zeros(M+1) 
+                y[i] = 1
+                p = lagrange(x, y)
+                para = np.poly1d.integ(p)  
+                S[m,i] = para(m+1) - para(m)
+
 
         for j in range(J):
-            # Prediction Loop ADAM BASHFORTH
-            eta[0, j, 0] = alpha if j == 0 else eta_overlaps[j]
-            eta[0, j, 1] = eta[0, j, 0] + dt*f(t[j, 0], eta[0, j, 0])
-            t[j, 0], t[j, 1] = j*K*dt, (j*K+1)*dt
-            for m in range(K-1):
-                t[j, m+1] = (j*K+m+1)*dt
-                eta[0, j, m+2] = eta[0, j, m+1] \
-                    + 1.5*dt*f(t[j, m+1], eta[0, j, m+1]) \
-                    - 0.5*dt*f(t[0, m], eta[0, j, m])
-
-            # Correction Loops
-            for l in range(1, M+1):
-                eta[l, j, 0] = eta[l-1, j, 0]
-                for m in range(M):
-                    # Error equation, Forward Euler
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt*np.sum([S[m, i] * f(t[j, i], eta[l-1, j, i])
-                                       for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-                for m in range(M, K):
-                    term1 = dt*(f(t[j, m], eta[l, j, m]) -
-                                f(t[j, m], eta[l-1, j, m]))
-                    term2 = dt * \
-                        np.sum([S[M-1, i] * f(t[j, m-M+i], eta[l-1, j, m-M+i])
-                                for i in range(M)])
-                    eta[l, j, m+1] = eta[l, j, m] + term1 + term2
-
-            eta_sol[j*K+1:(j+1)*K + 1] = eta[M, j, 1:]
-            if j != J-1:
-                eta_overlaps[j+1] = eta[M, j, K]
+            eta0[:, 0] = eta_sol[j*K]  # predictor starts w last point in j-1 interval
+            eta0[j, 1] = eta0[j, 0] + dt*f(t[j, 0], eta0[j, 0])
+            for m in range(K-1):   #prediction
+                eta0[j,m+2] = eta0[j,m+1] +  1.5*dt*f(t[j, m+1], eta0[j, m+1]) - 0.5*dt*f(t[0, m], eta0[j, m])
+                
+            for l in range(1,M+1):   #correction
+                eta1[j,0] = eta0[j,0]
+                
+                for m in range(M):  
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[m,k]*f(t[j,k],eta0[j,k]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] + term1 + term2 #solve error equation with forward Euler
+                
+                for m in range(M,K):
+                    term1 = dt*(f(t[j,m],eta1[j,m])-f(t[j,m],eta0[j,m]))
+                    term2 = dt*sum([S[M-1,k]*f(t[j,m-M+k+1],eta0[j,m-M+k+1]) for k in range(M+1)])
+                    eta1[j,m+1] = eta1[j,m] +  term1 + term2 #solve error equation with forward Euler
+                        
+                eta0[j] = eta1[j]
+        
+            eta_sol[j*K+1:j*K+K+1] = eta1[j,1:]
 
         return eta_sol
 
@@ -599,3 +601,82 @@ class DCs:
             F1[0, M-1] = func(t_ext[iTime+1], Y2[0])
 
         return t, yy
+
+    @timing
+    def sam_ridc_fe(self, a,b, alpha, N,p,K,f):#Euler
+        #(a,b)-endpoints, N-number of steps, p-order of method, K- No. intervals,  y0-I.C, F-function
+        h = (b-a)/N  #stepsize
+        y0= alpha
+        d = 1 if isinstance(alpha, int) else len(alpha)
+        F= f
+        M = p-1  
+        J = int(N/K)
+        sol_list = np.zeros((N+1,d)) #stores the solution
+        
+        sol_list[0] = y0
+        T = np.zeros((J,K+1))
+        times = np.linspace(a,b,N+1)
+        for j in range(J):
+            T[j,0:K+1] = times[j*K:j*K+K+1] #times
+        Y = np.zeros((J,K+1, d))  #approx solution
+        Y1 = np.zeros((J,K+1, d))   #corrected solution
+        Y[0]= y0            #inital value
+        S = np.zeros((M,M+1))  #integration matrix
+        
+        for m in range(M):   # calculating integration matrix
+            for i in range(M+1):
+                x = np.arange(M+1)  # Construct a polynomial
+                y = np.zeros(M+1)   # which equals 1 at i, 0 at other points
+                y[i] = 1
+                p = lagrange(x, y)  # constructs polynomial
+                para = np.poly1d.integ(p)  
+                S[m,i] = para(m+1) - para(m)  #finds definite integral of polynomial and adds to integral matrix
+        # for m in range(M):
+        #     for i in range(M+1):
+        #         def c(t, i): return reduce(lambda x, y: x*y,
+        #                                    [(t-k)/(i-k) for k in range(M) if k != i])
+        #         S[m, i] = quadrature(c, m, m+1, args=(i))[0]
+
+                
+        for j in range(J):
+            Y[:, 0] = sol_list[j*K]  # predictor starts w last point in j-1 interval
+            for m in range(K):   #prediction
+                Y[j,m+1] = Y[j,m] + h*F(T[j,m],Y[j,m]) #Eulers forward method  
+                
+            for l in range(1,M+1):   #correction
+                Y1[j,0] = Y[j,0]
+                
+                for m in range(M):  
+                    
+                    g = sum([S[m,k]*F(T[j,k],Y[j,k]) for k in range(M+1)])
+
+                    Y1[j,m+1] = Y1[j,m] + h*(F(T[j,m],Y1[j,m])-F(T[j,m],Y[j,m])) + h*g #solve error equation with forward Euler
+                
+                for m in range(M,K):
+                    
+                    g = sum([S[M-1,k]*F(T[j,m-M+k+1],Y[j,m-M+k+1]) for k in range(M+1)])
+                    
+                    Y1[j,m+1] = Y1[j,m] + h*(F(T[j,m],Y1[j,m])-F(T[j,m],Y[j,m])) + h*g  #solve error equation with forward Euler
+                        
+                Y[j,:] = Y1[j,:]
+        
+            sol_list[j*K+1:j*K+K+1] = Y1[j,1:K+1]
+
+                
+        return sol_list
+
+
+if __name__ == '__main__' : 
+    dy_dt = ex.func1
+    y = ex.y_exact1
+    n = 1000
+    method = DCs().sam_ridc_fe
+    t = np.linspace(0, 1, n+1)
+    y_true = y(t)
+    y_pred = np.array(method(a=0, b=1, alpha=(1, 1), N=n, p=5, K=10, f=dy_dt)[0]).T
+
+    print(max(np.absolute(y_true[0] - y_pred[0])))
+
+    method = DCs().ridc_ab2
+    y_pred = np.array(method(a=0, b=1, alpha=(1, 1), N=n, p=5, K=10, f=dy_dt)[0]).T
+    print(max(np.absolute(y_true[0] - y_pred[0])))

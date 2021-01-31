@@ -5,6 +5,11 @@ from serial_examples import Schemes as scheme
 import test_examples as ex
 from time import time
 from functools import wraps
+from matplotlib import pyplot as plt
+from scipy.stats import linregress
+
+def slopes(xs, ys):
+    return linregress(np.log(np.array(xs)), np.log(np.array(ys)))[0]
 
 
 def test1():
@@ -30,79 +35,201 @@ def test1():
 
     true = np.array([y(t) for t in ts])
     fe_err = np.mean(np.abs(true-fe))
-    rk4_err = np.mean(np.abs(true -rk4))
-    ab4_err = np.mean(np.abs(true -ab4))
+    rk4_err = np.mean(np.abs(true - rk4))
+    ab4_err = np.mean(np.abs(true - ab4))
 
-    idc_fe2, time_idc_fe2 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 3, f=dy_dt)
-    idc_fe3, time_idc_fe3 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 5, f=dy_dt)
-    idc_fe6, time_idc_fe6 = dc().idc_fe(a=start, b= stop, alpha = y0, N =N, p= 6, f=dy_dt)
+    idc_fe2, time_idc_fe2 = dc().idc_fe(a=start, b=stop, alpha=y0, N=N, p=3, f=dy_dt)
+    idc_fe3, time_idc_fe3 = dc().idc_fe(a=start, b=stop, alpha=y0, N=N, p=5, f=dy_dt)
+    idc_fe6, time_idc_fe6 = dc().idc_fe(a=start, b=stop, alpha=y0, N=N, p=6, f=dy_dt)
     idc_fe2_err = np.mean(np.abs(true-idc_fe2))
     idc_fe3_err = np.mean(np.abs(true-idc_fe3))
     idc_fe6_err = np.mean(np.abs(true-idc_fe6))
 
-    ridc_fe3, time_ridc_fe3 = dc().ridc_fe(a=start, b= stop, alpha = y0, N =N, p= 4, K = N, f=dy_dt)
-    ridc_fe4, time_ridc_fe4 = dc().ridc_fe(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/2), f=dy_dt)
-    ridc_fe5, time_ridc_fe5 = dc().ridc_fe(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/4), f=dy_dt)
+    ridc_fe3, time_ridc_fe3 = dc().ridc_fe(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=N, f=dy_dt)
+    ridc_fe4, time_ridc_fe4 = dc().ridc_fe(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/2), f=dy_dt)
+    ridc_fe5, time_ridc_fe5 = dc().ridc_fe(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/4), f=dy_dt)
     ridc_fe3_err = np.mean(np.abs(true-ridc_fe3[1:]))
     ridc_fe4_err = np.mean(np.abs(true-ridc_fe4[1:]))
     ridc_fe5_err = np.mean(np.abs(true-ridc_fe5[1:]))
 
-    ridc_rk6, time_ridc_rk6 = dc().ridc_rk4(a=start, b= stop, alpha = y0, N =N, p= 4, K = N, f=dy_dt)
-    ridc_rk7, time_ridc_rk7 = dc().ridc_rk4(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/2), f=dy_dt)
-    ridc_rk8, time_ridc_rk8 = dc().ridc_rk4(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/4), f=dy_dt)
+    ridc_rk6, time_ridc_rk6 = dc().ridc_rk4(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=N, f=dy_dt)
+    ridc_rk7, time_ridc_rk7 = dc().ridc_rk4(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/2), f=dy_dt)
+    ridc_rk8, time_ridc_rk8 = dc().ridc_rk4(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/4), f=dy_dt)
     ridc_rk6_err = np.mean(np.abs(true-ridc_rk6[1:]))
     ridc_rk7_err = np.mean(np.abs(true-ridc_rk7[1:]))
     ridc_rk8_err = np.mean(np.abs(true-ridc_rk8[1:]))
 
-    ridc_ab9, time_ridc_ab9 = dc().ridc_ab2(a=start, b= stop, alpha = y0, N =N, p= 4, K = N, f=dy_dt)
-    ridc_ab10, time_ridc_rk10 = dc().ridc_ab2(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/2), f=dy_dt)
-    ridc_ab11, time_ridc_rk11 = dc().ridc_ab2(a=start, b= stop, alpha = y0, N =N, p= 4, K = int(N/4), f=dy_dt)
+    ridc_ab9, time_ridc_ab9 = dc().ridc_ab2(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=N, f=dy_dt)
+    ridc_ab10, time_ridc_rk10 = dc().ridc_ab2(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/2), f=dy_dt)
+    ridc_ab11, time_ridc_rk11 = dc().ridc_ab2(
+        a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/4), f=dy_dt)
     ridc_ab9_err = np.mean(np.abs(true-ridc_ab9[1:]))
     ridc_ab10_err = np.mean(np.abs(true-ridc_ab10[1:]))
     ridc_ab11_err = np.mean(np.abs(true-ridc_ab11[1:]))
-    
-    ridc_abM, time_ridc_abM = dc().ridc_abM(T=stop, y0=[y0], N=N, M=4, approach=0, f=dy_dt)
+
+    ridc_abM, time_ridc_abM = dc().ridc_abM(
+        T=stop, y0=[y0], N=N, M=4, approach=0, f=dy_dt)
     ridc_abM_err = np.mean(np.abs(true-ridc_abM[1:]))
 
-    ind = ['FE', 'RK4', 'AB4', 
-            'IDC3-FE', 'IDC5-FE','IDC6-FE', 
-            'RIDC(4,N)-FE', 'RIDC(4,N/2)-FE', 'RIDC(4,N/4)-FE', 
-            'RIDC(4,N)-RK4', 'RIDC(4,N/2)-RK4', 'RIDC(4,N/4)-RK4',
-            'RIDC(4,N)-AB2', 'RIDC(4,N/2)-AB2', 'RIDC(4,N/4)-AB2', 'RIDC4_N0_STENCIL']
-    
+    # (a,b)-endpoints, N-number of steps, p-order of method, K- No. intervals,  y0-I.C, F-function
+    ridc_sam, time_ridc_sam = dc().sam_ridc_fe(a=start, b=stop, alpha=y0, N=N, p=4, K=int(N/4), f=dy_dt)
+    ridc_sam_err = np.mean(np.abs(true-ridc_sam[1:]))
 
-    times = [fe_time, rk4_time, ab4_time, 
-                time_idc_fe2, time_idc_fe3, time_idc_fe6,
-                time_ridc_fe3, time_ridc_fe4, time_ridc_fe5, 
-                time_ridc_rk6, time_ridc_rk7, time_ridc_rk8, 
-                time_ridc_ab9, time_ridc_rk10, time_ridc_rk11, time_ridc_abM]
+    ind = ['FE', 'RK4', 'AB4',
+           'IDC3-FE', 'IDC5-FE', 'IDC6-FE',
+           'RIDC(4,N)-FE', 'RIDC(4,N/2)-FE', 'RIDC(4,N/4)-FE',
+           'RIDC(4,N)-RK4', 'RIDC(4,N/2)-RK4', 'RIDC(4,N/4)-RK4',
+           'RIDC(4,N)-AB2', 'RIDC(4,N/2)-AB2', 'RIDC(4,N/4)-AB2', 'hossein RIDC', 'sam RIDC-FE']
 
-    errors = [fe_err, rk4_err, ab4_err,
-                idc_fe2_err, idc_fe3_err, idc_fe6_err, 
-                ridc_fe3_err, ridc_fe4_err, ridc_fe5_err, 
-                ridc_rk6_err, ridc_rk7_err, ridc_rk8_err, 
-                ridc_ab9_err, ridc_ab10_err, ridc_ab11_err, ridc_abM_err]
+    def change_t(x): return "%.3e" % x
+    def change_e(x): return "%.4e" % x
 
-    n = [N]*len(times) 
-    k = [np.nan,np.nan,np.nan, 
-            np.nan,np.nan, np.nan,
-            320, 160, 80, 
-            320, 160, 80,
-            320, 160, 80, np.nan ]
+    times = list(map(change_t, [fe_time, rk4_time, ab4_time,
+                                time_idc_fe2, time_idc_fe3, time_idc_fe6,
+                                time_ridc_fe3, time_ridc_fe4, time_ridc_fe5,
+                                time_ridc_rk6, time_ridc_rk7, time_ridc_rk8,
+                                time_ridc_ab9, time_ridc_rk10, time_ridc_rk11,
+                                time_ridc_abM, time_ridc_sam]))
+
+    errors = list(map(change_e, [fe_err, rk4_err, ab4_err,
+                                 idc_fe2_err, idc_fe3_err, idc_fe6_err,
+                                 ridc_fe3_err, ridc_fe4_err, ridc_fe5_err,
+                                 ridc_rk6_err, ridc_rk7_err, ridc_rk8_err,
+                                 ridc_ab9_err, ridc_ab10_err, ridc_ab11_err,
+                                 ridc_abM_err, ridc_sam_err]))
+
+    n = [N]*len(times)
+    k = [np.nan, np.nan, np.nan,
+         np.nan, np.nan, np.nan,
+         320, 160, 80,
+         320, 160, 80,
+         320, 160, 80, np.nan, np.nan]
 
     data = {'N': n, 'K': k, 'Time': times, 'Average Error': errors}
 
-    # Creates pandas DataFrame. 
-    df_ = df(data, index =ind) 
-    
-    # print the data 
+    # Creates pandas DataFrame.
+    df_ = df(data, index=ind)
+
+    # print the data
     print(df_)
-    print(df_.to_latex())
+    # print(df_.to_latex())
 
 
-def test2():
-    NotImplemented
+def test2(method):
+    dy_dt = ex.func1
+    y = ex.y_exact1
+
+    rangeN = [10**n for n in [2, 3, 4, 5, 6]]
+    ks = [5, 10, 20, 25, 50]
+    errorsK0 = []
+    errorsK1 = []
+
+    for k in ks:
+        errors0, errors1 = [], []
+        for n in rangeN:
+            t = np.linspace(0, 1, n+1)
+            y_true = y(t)
+            y_pred = np.array(method(a=0, b=1, alpha=(1, 1),
+                                     N=n, p=5, K=k, f=dy_dt)[0])
+
+            error = max(np.absolute(
+                y_true[0] - y_pred[:, 0])), max(np.absolute(y_true[1] - y_pred[:, 1]))
+            errors0, errors1 = errors0 + [error[0]], errors1 + [error[1]]
+
+        errorsK0 = errorsK0 + [errors0]
+        errorsK1 = errorsK1 + [errors1]
+
+    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(18, 6))
+    for eK in errorsK0:
+        ax0.plot(rangeN, eK, markersize=2)
+    ax0.grid()
+    ax0.set_xscale('log')
+    ax0.set_yscale('log')
+    ax0.legend(list(map(lambda x: "K = " + str(x), ks)))
+    ax0.set_xlabel('Number of intervals')
+    ax0.set_ylabel(r'Maximum absolute error')
+    #ax0.title('First dimension')
+
+    for eK in errorsK1:
+        ax1.plot(rangeN, eK, markersize=2)
+    ax1.grid()
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.legend(list(map(lambda x: "K = " + str(x), ks)))
+    ax1.set_xlabel('Number of intervals')
+    ax1.set_ylabel(r'Maximum absolute error')
+    #ax1.set_title('Second dimension')
+    plt.show()
+
+    errorsK0, errorsK1
+
+
+def test3(method):
+    dy_dt = ex.func1
+    y = ex.y_exact1
+
+    errorsM0, errorsM1 = [], []
+    M = [1, 2, 3, 4, 5, 6]
+    rangeN = [10**n for n in [2, 3, 4, 5, 6]]
+
+    for m in M:
+        errors0, errors1 = [], []
+        for n in rangeN:
+            t = np.linspace(0, 1, n+1)
+            y_true = y(t)
+            y_pred = np.array(method(a=0, b=1, alpha=(
+                1, 1), N=n, p=m+1, K=int(n/4), f=dy_dt)[0])
+
+            error = max(np.absolute(
+                y_true[0] - y_pred[:, 0])), max(np.absolute(y_true[1] - y_pred[:, 1]))
+            errors0, errors1 = errors0 + [error[0]], errors1 + [error[1]]
+        errorsM0 = errorsM0 + [errors0]
+        errorsM1 = errorsM1 + [errors1]
+
+    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(18, 6))
+
+    for eM in errorsM0:
+        ax0.plot(rangeN, eM, markersize=2)
+    ax0.grid()
+    ax0.set_xscale('log')
+    ax0.set_yscale('log')
+    ax0.legend(list(map(lambda x: "M = " + str(x), M)))
+    ax0.set_xlabel('Number of intervals')
+    ax0.set_ylabel(r'Maximum absolute error')
+    #ax0.title('First dimension')
+
+    for eM in errorsM1:
+        ax1.plot(rangeN, eM, markersize=2)
+    ax1.grid()
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.legend(list(map(lambda x: "M = " + str(x), M)))
+    ax1.set_xlabel('Number of intervals')
+    ax1.set_ylabel(r'Maximum absolute error')
+    #ax1.set_title('Second dimension')
+    plt.show()
+
+
+def 
+
 
 
 if __name__ == '__main__':
+    # table, test time and error
     test1()
+
+    # figure, test K
+    test2(dc().ridc_fe)
+
+    # figure test M
+    test3(dc().ridc_fe)
+
+    
