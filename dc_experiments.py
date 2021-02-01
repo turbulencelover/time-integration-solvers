@@ -14,6 +14,7 @@ import test_examples as ex
 
 class DCs:
 
+    @classmethod
     def timing(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -435,7 +436,7 @@ class DCs:
 
             F1[0, M-1] = f(t_ext[iTime+1], Y2[0])
 
-        return t, yy
+        return yy
 
     @timing
     def ridc_rk4_ab4(self, func, T, y0, N, M):

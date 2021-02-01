@@ -31,4 +31,4 @@ def func2(t,y):
     return np.array([y1_p, y2_p])
 
 def y_exact2(ts):
-    return np.array([np.cos(t) for t in ts], [np.sin(t) for t in ts])
+    return np.array([[np.cos(t) for t in ts], [np.sin(t) for t in ts]])

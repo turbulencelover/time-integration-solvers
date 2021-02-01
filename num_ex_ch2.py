@@ -127,7 +127,7 @@ def test2(method):
     dy_dt = ex.func1
     y = ex.y_exact1
 
-    rangeN = [10**n for n in [2, 3, 4, 5, 6]]
+    rangeN = [50*(i**2) for i in [2,4,6,8,10] ]
     ks = [5, 10, 20, 25, 50]
     errorsK0 = []
     errorsK1 = []
@@ -148,25 +148,25 @@ def test2(method):
         errorsK1 = errorsK1 + [errors1]
 
     fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(18, 6))
-    for eK in errorsK0:
+    for i, eK in enumerate(errorsK0):
         ax0.plot(rangeN, eK, markersize=2)
+        print('1: Slope in first grid K ' + str(ks[i]) +' is '+ str(slopes(rangeN[:2], eK[:2])))
     ax0.grid()
     ax0.set_xscale('log')
     ax0.set_yscale('log')
     ax0.legend(list(map(lambda x: "K = " + str(x), ks)))
     ax0.set_xlabel('Number of intervals')
     ax0.set_ylabel(r'Maximum absolute error')
-    #ax0.title('First dimension')
 
-    for eK in errorsK1:
+    for i, eK in enumerate(errorsK1):
         ax1.plot(rangeN, eK, markersize=2)
+        print('2: Slope in first grid K ' + str(ks[i]) +' is '+ str(slopes(rangeN[:2], eK[:2])))
     ax1.grid()
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.legend(list(map(lambda x: "K = " + str(x), ks)))
     ax1.set_xlabel('Number of intervals')
     ax1.set_ylabel(r'Maximum absolute error')
-    #ax1.set_title('Second dimension')
     plt.show()
 
     errorsK0, errorsK1
@@ -178,7 +178,7 @@ def test3(method):
 
     errorsM0, errorsM1 = [], []
     M = [1, 2, 3, 4, 5, 6]
-    rangeN = [10**n for n in [2, 3, 4, 5, 6]]
+    rangeN = [50*(i**2) for i in [2,4,6,8,10] ]
 
     for m in M:
         errors0, errors1 = [], []
@@ -186,7 +186,7 @@ def test3(method):
             t = np.linspace(0, 1, n+1)
             y_true = y(t)
             y_pred = np.array(method(a=0, b=1, alpha=(
-                1, 1), N=n, p=m+1, K=int(n/4), f=dy_dt)[0])
+                1, 1), N=n, p=m+1, K=10, f=dy_dt)[0])
 
             error = max(np.absolute(
                 y_true[0] - y_pred[:, 0])), max(np.absolute(y_true[1] - y_pred[:, 1]))
@@ -196,40 +196,124 @@ def test3(method):
 
     fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(18, 6))
 
-    for eM in errorsM0:
+    for i,eM in enumerate(errorsM0):
         ax0.plot(rangeN, eM, markersize=2)
+        print('1: Slope in first grid M ' + str(M[i]) +' is ', slopes(rangeN[:2], eM[:2]))
     ax0.grid()
     ax0.set_xscale('log')
     ax0.set_yscale('log')
     ax0.legend(list(map(lambda x: "M = " + str(x), M)))
     ax0.set_xlabel('Number of intervals')
     ax0.set_ylabel(r'Maximum absolute error')
-    #ax0.title('First dimension')
 
-    for eM in errorsM1:
+    for i, eM in enumerate(errorsM1):
         ax1.plot(rangeN, eM, markersize=2)
+        print('2: Slope in first grid M ' + str(M[i]) +' is ', slopes(rangeN[:2], eM[:2]))
     ax1.grid()
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.legend(list(map(lambda x: "M = " + str(x), M)))
     ax1.set_xlabel('Number of intervals')
     ax1.set_ylabel(r'Maximum absolute error')
+    plt.show()
+
+
+def test4():
+    dy_dt = ex.func2
+    y = ex.y_exact2
+
+    
+    rangeN = [50*(i**2) for i in [2,4,6,8,10] ]
+    errorsM0, errorsM1 = [], []
+    approach = [0,1,2]
+
+    for a in approach:
+        errors0, errors1 = [], []
+        for n in rangeN:
+            t = np.linspace(0, 1, n+1)
+            y_true = y(t)
+            y_pred = np.array(dc().ridc_abM(T=1, y0=(1, 1), N=n, M = 4, approach = a, f=dy_dt)[0])
+
+            error = max(np.absolute(
+                y_true[0] - y_pred[:, 0])), max(np.absolute(y_true[1] - y_pred[:, 1]))
+            errors0, errors1 = errors0 + [error[0]], errors1 + [error[1]]
+        errorsM0 = errorsM0 + [errors0]
+        errorsM1 = errorsM1 + [errors1]
+
+    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(18, 6))
+
+    for i, eM in enumerate(errorsM0):
+        ax0.plot(rangeN, eM, markersize=2)
+        print('1: Slope in first grid approach ' + str(approach[i]) +' is ', slopes(rangeN[:2], eM[:2]))
+    ax0.grid()
+    ax0.set_xscale('log')
+    ax0.set_yscale('log')
+    ax0.legend(list(map(lambda x: "approach = " + str(x), approach)))
+    ax0.set_xlabel('Number of intervals')
+    ax0.set_ylabel(r'Maximum absolute error')
+    #ax0.title('First dimension')
+
+    for i, eM in enumerate(errorsM1):
+        ax1.plot(rangeN, eM, markersize=2)
+        print('2: Slope in first grid approach ' + str(approach[i]) +' is ', slopes(rangeN[:2], eM[:2]))
+    ax1.grid()
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.legend(list(map(lambda x: "approach = " + str(x), approach)))
+    ax1.set_xlabel('Number of intervals')
+    ax1.set_ylabel(r'Maximum absolute error')
     #ax1.set_title('Second dimension')
     plt.show()
 
 
-def 
+def test5():
+    T1 = 10
+    M = 4
+    Mm = M - 1
+    y0 = [1,0]
+    dy_dt = ex.func2
+    y_true = ex.y_exact2
+    # Y_exact = (1 + np.linspace(0, T1, N)**2)**2
+    yExact = y_true([T1])
+    rangeN = [int(10**n) for n in np.arange(1.8, 3.8, 0.2)]
+    rangeNpower = [(10**12)*int(10**n)**(-9) for n in np.arange(1.8, 3.8, 0.2)]
 
+    err0 = np.empty(np.shape(rangeN))
+    err1 = np.empty(np.shape(rangeN))
+    err2 = np.empty(np.shape(rangeN))
+    for i, NN in enumerate(rangeN):
+        yy_0, _ = dc().ridc_abM(T1, y0, NN-1, M, 0, dy_dt) 
+        yy_1, _ = dc().ridc_abM(T1, y0, NN-1, M, 1, dy_dt)
+        yy_2, _ = dc().ridc_abM(T1, y0, NN-1, M, 2, dy_dt)
+
+        err0[i] = (yExact[0]-yy_0[-1,0])**2 + (yExact[1]-yy_0[-1,1])**2
+        err1[i] = (yExact[0]-yy_1[-1, 0])**2 + (yExact[1]-yy_1[-1,1])**2
+        err2[i] = (yExact[0]-yy_2[-1, 0])**2 + (yExact[1]-yy_2[-1,1])**2
+
+    fig, ax = plt.subplots()
+    ax.plot(rangeN, err0, label='approach 0')
+    ax.plot(rangeN, err1, label='approach 1')
+    ax.plot(rangeN, err2, label='approach 2')
+    ax.plot(rangeN, rangeNpower, label='e = N^{-9}')
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('N')  # Add an x-label to the axes.
+    ax.set_ylabel('squared amplitude error')
+    ax.set_title("Errors using different methods")
+    ax.legend(loc='lower left')
+    plt.show()
 
 
 if __name__ == '__main__':
     # table, test time and error
-    test1()
+    #test1()
 
     # figure, test K
-    test2(dc().ridc_fe)
+    #test2(dc().ridc_rk4)
 
     # figure test M
-    test3(dc().ridc_fe)
+    test3(dc().ridc_rk4)
 
-    
+    #test4() 
+    #test5()
